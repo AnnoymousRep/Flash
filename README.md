@@ -40,7 +40,7 @@ For Reflection, inspired by the studies below, we use a controllable string and 
 - https://github.com/mbechler/marshalsec/blob/master/marshalsec.pdf
 - Li Y, Tan T, Sui Y, et al. Self-inferencing reflection resolution for Java[C]//ECOOP 2014–Object-Oriented Programming: 28th European Conference, Uppsala, Sweden, July 28–August 1, 2014. Proceedings 28. Springer Berlin Heidelberg, 2014: 27-53.
 
-To see the summaries, please refer to priori-knowledge file :
+To see the summaries, please refer to [priori-knowledge file](https://github.com/AnnoymousRep/Flash/blob/main/java-benchmarks/JDV/test.yml) :
 
 - Controllable String -> String, StringBuilder, StringBuffer
 - Controllable JavaBean -> PropertyDescriptor, Introspector
