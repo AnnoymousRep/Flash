@@ -91,6 +91,6 @@ As noted in the paper, the results can be a large number, so we recommend you fi
 
 ### The Results of Flash
 
-For the results in paper, please refer to Flash_GC.
+For the results in paper, please refer to [Flash_GC](https://github.com/AnnoymousRep/Flash_GC).
 
 If you find a new Gadget Chain with Flash, we are very glad to see your PR :)
