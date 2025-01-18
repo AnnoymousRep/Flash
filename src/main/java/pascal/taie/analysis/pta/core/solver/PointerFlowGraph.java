@@ -26,6 +26,7 @@ import pascal.taie.analysis.graph.flowgraph.FlowKind;
 import pascal.taie.analysis.pta.core.cs.element.*;
 import pascal.taie.language.classes.JClass;
 import pascal.taie.language.classes.JField;
+import pascal.taie.language.classes.JMethod;
 import pascal.taie.language.type.Type;
 import pascal.taie.util.collection.Maps;
 import pascal.taie.util.collection.TwoKeyMap;
@@ -50,13 +51,16 @@ public class PointerFlowGraph implements Graph<Pointer> {
 
     private TwoKeyMap<JClass, Type, Set<PointerFlowEdge>> arrayMatchEdges;
 
-    private Map<PointerFlowEdge, Integer> ifRangeMap;
+    private Map<PointerFlowEdge, String> ifRangeMap;
+
+    private Map<PointerFlowEdge, JMethod> ifContainer;
 
     public PointerFlowGraph(CSManager csManager) {
         this.csManager = csManager;
         this.fieldMatchEdges = Maps.newMap();
         this.arrayMatchEdges = Maps.newTwoKeyMap();
         this.ifRangeMap = Maps.newMap();
+        this.ifContainer = Maps.newMap();
     }
 
     /**
@@ -128,11 +132,19 @@ public class PointerFlowGraph implements Graph<Pointer> {
         return arrayMatchEdges.getOrDefault(jClass, type, Set.of());
     }
 
-    public void addIfRange(PointerFlowEdge edge, int ifEnd) {
-        ifRangeMap.put(edge, ifEnd);
+    public void addIfRange(PointerFlowEdge edge, int ifStart, int ifEnd, JMethod method) {
+        if (ifStart != -1 && ifEnd != -1) {
+            String ifRange = ifStart + "->" + ifEnd;
+            ifRangeMap.put(edge, ifRange);
+            ifContainer.put(edge, method);
+        }
     }
 
-    public int getIfRange(PointerFlowEdge edge) {
-        return ifRangeMap.getOrDefault(edge, -1);
+    public String getIfRange(PointerFlowEdge edge) {
+        return ifRangeMap.getOrDefault(edge, "-1");
+    }
+
+    public JMethod getIfContainer(PointerFlowEdge edge) {
+        return ifContainer.getOrDefault(edge, null);
     }
 }

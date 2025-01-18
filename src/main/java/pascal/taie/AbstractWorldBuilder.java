@@ -86,14 +86,32 @@ public abstract class AbstractWorldBuilder implements WorldBuilder {
             try (Stream<Path> paths = Files.walk(Path.of(jrePath))) {
                 return Streams.concat(
                                 paths.map(Path::toString).filter(p -> p.endsWith(".jar")),
-                                options.getAppClassPath().stream(),
                                 options.getClassPath().stream())
-                        .collect(Collectors.joining(File.pathSeparator));
+                        .collect(Collectors.joining(File.pathSeparator)) + getAppClassPath(options.getAppClassPath());
             } catch (IOException e) {
                 throw new RuntimeException("Analysis on Java " +
                         options.getJavaVersion() + " library is not supported yet", e);
             }
         }
+    }
+
+    private static String getAppClassPath(List<String> appClassPath) {
+        String ret = "";
+        if (appClassPath.isEmpty()) return ret;
+        for (String app : appClassPath) {
+            Path dir = Path.of(app);
+            ret += File.pathSeparator;
+            try {
+                if (Files.walk(dir).anyMatch(p -> p.toString().endsWith(".jar"))) {
+                    ret += Files.walk(dir).map(Path::toString).filter(p -> p.endsWith(".jar")).collect(Collectors.joining(File.pathSeparator)).replace("\\", "/");
+                } else {
+                    ret += app;
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return ret;
     }
 
     protected static NativeModel getNativeModel(

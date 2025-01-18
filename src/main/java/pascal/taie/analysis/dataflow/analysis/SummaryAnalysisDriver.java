@@ -57,7 +57,7 @@ public class SummaryAnalysisDriver extends MethodAnalysis<DataflowResult<Stmt, C
         this.emptyContext = ContextSelectorFactory.makeCISelector().getEmptyContext();
         this.csManager = new MapBasedCSManager();
         this.csCallGraph = new CSCallGraph(csManager, emptyContext);
-        this.stackManger = new StackManger(csCallGraph);
+        this.stackManger = new StackManger();
         this.pointerFlowGraph = new PointerFlowGraph(csManager);
         this.solver = Solver.getSolver();
         setPlugin(getOptions());
@@ -69,14 +69,14 @@ public class SummaryAnalysisDriver extends MethodAnalysis<DataflowResult<Stmt, C
         plugin.addPlugin(
                 new AnalysisTimer(),
                 new ClassInitializer(),
-                new PrioriKnow(options.getString("priori-knowledge"))
+                new PrioriKnow(options.getString("priori-knowledge")),
+                new GCCollector(csCallGraph, World.get().getOptions().getGC_OUT())
         );
         plugin.onStart();
     }
 
     public void finish() {
         plugin.onFinish();
-        stackManger.count();
     }
 
     @Override
@@ -85,14 +85,14 @@ public class SummaryAnalysisDriver extends MethodAnalysis<DataflowResult<Stmt, C
         if (stackManger.containsMethod(method)) return null;
         CFG<Stmt> cfg = ir.getResult(CFGBuilder.ID);
         if (cfg == null) return null; // 跳过abstract方法分析
-        plugin.onNewMethod(method);
         stackManger.pushMethod(method);
+        plugin.onNewInit(method); // 先分析static方法
         csCallGraph.addReachableMethod(csManager.getCSMethod(emptyContext, method));
-        SummaryAnalysis analysis = makeAnalysis(cfg, stackManger, csManager, heapModel, emptyContext, pointerFlowGraph, csCallGraph);
+        SummaryAnalysis analysis = makeAnalysis(cfg, stackManger, csManager, heapModel, emptyContext, pointerFlowGraph, csCallGraph, plugin);
         DataflowResult<Stmt, ContrFact> ret = solver.solve(analysis);
         analysis.complementSummary();
         stackManger.popMethod();
-        if (!method.hasSummary()) method.setSummary("return", "null");
+        if (!method.hasSummary()) method.setSummary("return", "null+null");
         analyzedMethod += 1;
         if (analyzedMethod % 5000 == 0) {
             logger.info("[+] have analyzed {} methods, remaining {} methods in stack, {} methods may need analysis", analyzedMethod, stackManger.mSize(), allMethod - analyzedMethod - stackManger.mSize());
@@ -100,8 +100,8 @@ public class SummaryAnalysisDriver extends MethodAnalysis<DataflowResult<Stmt, C
         return ret;
     }
 
-    public static SummaryAnalysis makeAnalysis(CFG<Stmt> body, StackManger stackManger, CSManager csManager, HeapModel heapModel, Context context, PointerFlowGraph pointerFlowGraph, CSCallGraph csCallGraph) {
-        return new SummaryAnalysis(body, stackManger, csManager, heapModel, context, pointerFlowGraph, csCallGraph);
+    public static SummaryAnalysis makeAnalysis(CFG<Stmt> body, StackManger stackManger, CSManager csManager, HeapModel heapModel, Context context, PointerFlowGraph pointerFlowGraph, CSCallGraph csCallGraph, CompositePlugin plugin) {
+        return new SummaryAnalysis(body, stackManger, csManager, heapModel, context, pointerFlowGraph, csCallGraph, plugin);
     }
 
 }

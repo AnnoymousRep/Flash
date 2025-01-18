@@ -26,6 +26,10 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -46,6 +50,16 @@ public class Timer {
     private long startTime;
 
     private boolean inCounting = false;
+
+    private static PrintWriter pw;
+
+    static {
+        try {
+            pw = new PrintWriter(new BufferedWriter(new FileWriter("./time")));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public Timer(String name) {
         this.name = name;
@@ -94,6 +108,8 @@ public class Timer {
         timer.stop();
         logger.log(level, "{} finishes, elapsed time: {}", taskName,
                 String.format("%.2fs", timer.inSecond()));
+        pw.println(taskName + " finishes, elapsed time: " + String.format("%.2fs", timer.inSecond()));
+        pw.flush();
         return result;
     }
 

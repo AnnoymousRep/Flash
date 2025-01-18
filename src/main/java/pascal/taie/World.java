@@ -96,6 +96,8 @@ public final class World extends AbstractResultHolder
 
     private Set<JMethod> invocationHandlerMethods = new HashSet<>();
 
+    private Set<JMethod> sinks = new HashSet<>();
+
     /**
      * Sets current world to {@code world}.
      */
@@ -235,6 +237,14 @@ public final class World extends AbstractResultHolder
         }
     }
 
+    public void addSink(JMethod method) {
+        sinks.add(method);
+    }
+
+    public Set<JMethod> getSinks() {
+        return sinks;
+    }
+
     public Stream<JMethod> allMethods() {
         return World.get()
                 .getClassHierarchy()
@@ -242,38 +252,27 @@ public final class World extends AbstractResultHolder
                 .flatMap(j -> j.getDeclaredMethods().stream());
     }
 
-    public Set<JMethod> filterMethods(String name, String clzName, List<Type> argTypes, boolean recSer, boolean paramSer, Type expandArgType) { // TODO 以下两个方法可以优化合并
+    public Set<JMethod> filterMethods(String nameReg, String clzName, List<Type> argTypes, boolean recSer, boolean paramSer, Type expandArgType) {
         boolean hasStar = clzName.contains("*");
         Pattern pattern = hasStar ? Pattern.compile(clzName) : null;
-        Type clsType = null;
-        if (!hasStar) {
-            clsType = typeSystem.getType(clzName);
-            if (clsType == null || (clsType instanceof ClassType ct && ct.getJClass() == null)) return Sets.newSet();
-        }
+        Type clsType = hasStar ? null : typeSystem.getType(clzName);
 
-        Type finalClsType = clsType;
-        return allMethods()
-                .filter(m -> hasStar ? pattern.matcher(m.getDeclaringClass().getName()).find() : m.getName().equals(name))
-                .filter(m -> typeSystem.isSubtype(finalClsType, m.getDeclaringClass().getType())
-                        && !m.isAbstract()
-                        && !m.isPrivate()
-                        && (recSer || m.getDeclaringClass().isSerializable())
-                        && (!paramSer || m.getIR().getParams().stream().allMatch(p -> ContrUtil.isSerializableType(p.getType()))))
-                .filter(m -> typeSystem.allSubType(expandArgType, argTypes, m.getIR().getParams().stream()
-                        .map(Var::getType)
-                        .collect(Collectors.toList())))
-                .collect(Collectors.toSet());
+        return filterMethods(hasStar, false, pattern, nameReg, clsType, argTypes, recSer, paramSer, expandArgType);
     }
 
     public Set<JMethod> filterMethods(String nameReg, Type clsType, List<Type> argTypes, boolean recSer, boolean paramSer, Type expandArgType) {
         boolean hasStar = nameReg.contains("*");
-        Pattern pattern = Pattern.compile(nameReg);
+        Pattern pattern = hasStar ? Pattern.compile(nameReg) : null;
 
+        return filterMethods(hasStar, true, pattern, nameReg, clsType, argTypes, recSer, paramSer, expandArgType);
+    }
+
+    public Set<JMethod> filterMethods(boolean useMatch, boolean matchMethod, Pattern pattern, String reg, Type clsType, List<Type> argTypes, boolean recSer, boolean paramSer, Type expandArgType) {
         return allMethods()
-                .filter(m -> hasStar ? pattern.matcher(m.getName()).find() : m.getName().equals(nameReg))
+                .filter(m -> useMatch ? (matchMethod ? pattern.matcher(m.getName()).find() : pattern.matcher(m.getDeclaringClass().getName()).find() && m.getName().equals(reg)) : m.getName().equals(reg))
                 .filter(m -> !m.isAbstract()
                         && !m.isPrivate()
-                        && typeSystem.isSubtype(clsType, m.getDeclaringClass().getType())
+                        && (clsType == null ? true : typeSystem.isSubtype(clsType, m.getDeclaringClass().getType()))
                         && (recSer || m.getDeclaringClass().isSerializable())
                         && (!paramSer || m.getIR().getParams().stream().allMatch(p -> ContrUtil.isSerializableType(p.getType()))))
                 .filter(m -> typeSystem.allSubType(expandArgType, argTypes, m.getIR().getParams().stream()

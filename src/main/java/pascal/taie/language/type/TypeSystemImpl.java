@@ -230,4 +230,15 @@ public class TypeSystemImpl implements TypeSystem {
     public boolean isPrimitiveType(String typeName) {
         return primitiveTypes.containsKey(typeName);
     }
+
+    @Override
+    public boolean hasSubRelation(List<Type> typeList1, List<Type> typeList2) {
+        if (typeList1.size() != typeList2.size()) return false;
+        for (int i = 0; i < typeList1.size(); i++) {
+            Type t1 = typeList1.get(i);
+            Type t2 = typeList2.get(i);
+            if (!isSubtype(t1, t2) && !isSubtype(t2, t1)) return false;
+        }
+        return true;
+    }
 }

@@ -106,12 +106,15 @@ public class ClassNameExtractor {
             System.out.printf("Scanning %s ... ", dir.toAbsolutePath());
             List<String> classNames = new ArrayList<>();
             paths.map(dir::relativize).forEach(path -> {
-                String fileName = path.getFileName().toString();
+                String fileName = path.toString();
                 int suffix;
                 if (fileName.endsWith(CLASS)) {
                     suffix = CLASS.length();
                 } else if (fileName.endsWith(JAVA)) {
                     suffix = JAVA.length();
+                } else if (fileName.endsWith(JAR)) {
+                    classNames.addAll(extractJar(dirPath + fileName));
+                    return;
                 } else {
                     return;
                 }

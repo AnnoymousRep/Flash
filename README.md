@@ -57,7 +57,7 @@ Before using Flash, make sure you know [how to use Tai-e](https://tai-e.pascal-l
 
 #### Analysis Target
 
-Just specific the `appClassPath` in the analysis configuration file. You can analyze multiple jars at the same time. 
+Just specific the `appClassPath` in the analysis configuration file. You can analyze multiple jars at the same time.
 
 ![image-20241017170102063](./docs/img/target.png)
 

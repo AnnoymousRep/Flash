@@ -9,31 +9,29 @@ import java.util.Set;
 
 public class ClassInitializer implements Plugin {
 
-    private Set<JClass> noReadObject;
+    private Set<JClass> noDeserClz;
 
-    private Set<JClass> initConstruct;
+    private Set<JClass> initClz;
 
-    private Set<JClass> initReadObject;
+    private Set<JClass> deserClz;
 
     @Override
     public void onStart() {
-        noReadObject = new HashSet<>();
-        initConstruct = new HashSet<>();
-        initReadObject = new HashSet<>();
+        noDeserClz = new HashSet<>();
+        initClz = new HashSet<>();
+        deserClz = new HashSet<>();
     }
 
     @Override
-    public void onNewMethod(JMethod method) {
+    public void onNewInit(JMethod method) {
         JClass clz = method.getDeclaringClass();
-        if (method.isSource()) {
-            initReadObject.add(clz);
+        if (method.isStatic() || method.isConstructor() || method.isSource()) {
+            initializeClass(clz);
         }
-        if (!method.getName().equals("<clinit>")) initializeReadObject(clz); //  防止未初始化类即恢复对象
-        initializeClass(clz);
     }
 
     public void initializeClass(JClass cls) {
-        if (cls == null || cls.isIgnored() || initConstruct.contains(cls)) {
+        if (cls == null || cls.isIgnored() || initClz.contains(cls)) {
             return;
         }
         JClass superclass = cls.getSuperClass();
@@ -42,27 +40,34 @@ public class ClassInitializer implements Plugin {
         }
         JMethod clinit = cls.getClinit();
         if (clinit != null) {
-            initConstruct.add(cls);
-            if (!clinit.hasSummary()) {
-                AnalysisManager.runMethodAnalysis(clinit);
-            }
+            initClz.add(cls);
+            AnalysisManager.runMethodAnalysis(clinit);
         }
     }
 
+    @Override
+    public void onNewDeser(JMethod method) {
+        JClass clz = method.getDeclaringClass();
+        initializeReadObject(clz);
+    }
+
     private void initializeReadObject(JClass cls) {
-        if (cls == null || noReadObject.contains(cls) || initReadObject.contains(cls)) {
+        if (cls == null || !cls.isSerializable() || noDeserClz.contains(cls) || deserClz.contains(cls)) {
             return;
         }
-        boolean existReadObject = false;
+        JClass superclass = cls.getSuperClass();
+        if (superclass != null) {
+            initializeReadObject(superclass);
+        }
+        boolean existDeserM = false;
         for (JMethod readObject : cls.getDeclaredMethods()) {
             if (readObject.isSource()) {
-                initReadObject.add(cls);
-                existReadObject = true;
-                if (!readObject.hasSummary()) AnalysisManager.runMethodAnalysis(readObject);
-                break;
+                deserClz.add(cls);
+                existDeserM = true;
+                AnalysisManager.runMethodAnalysis(readObject);
             }
         }
-        if (!existReadObject) noReadObject.add(cls);
+        if (!existDeserM) noDeserClz.add(cls);
     }
 
 }

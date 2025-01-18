@@ -1,69 +1,58 @@
 package pascal.taie.analysis.dataflow.analysis.methodsummary;
 
+import pascal.taie.World;
 import pascal.taie.analysis.dataflow.analysis.methodsummary.Utils.ContrUtil;
-import pascal.taie.analysis.pta.core.cs.element.Pointer;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import pascal.taie.language.type.TypeSystem;
 
 public class PointsTo {
 
-    private Map<Pointer, Contr> relatedMap;
+    private Contr mergedContr;
+
+    private TypeSystem typeSystem = World.get().getTypeSystem();
 
     public PointsTo() {
-        relatedMap = new HashMap<>();
     }
 
     public static PointsTo make() {
         return new PointsTo();
     }
 
-    public boolean add(Pointer p, Contr contr) { // 简单实现了merge策略
+    public boolean add(Contr contr) { // 简单实现了merge策略
         if (contr == null) return false;
-        if (relatedMap.isEmpty()) {
-            relatedMap.put(p, contr);
+        if (mergedContr == null) {
+            mergedContr = contr;
             return true;
         } else {
-            Contr old = relatedMap.entrySet().iterator().next().getValue();
-            if (ContrUtil.needUpdateInMerge(old.getValue(), contr.getValue())) {
-                relatedMap.clear();
-                relatedMap.put(p, contr);
+            if (mergedContr.isNew() && contr.isNew()) {
+                if ((typeSystem.isSubtype(contr.getType(), mergedContr.getType()) && !mergedContr.getType().equals(contr.getType()))
+                        || (ContrUtil.isControllable(contr) && !ContrUtil.isControllable(mergedContr))) {
+                    mergedContr = contr;
+                    return true;
+                } else if (!typeSystem.isSubtype(mergedContr.getType(), contr.getType())) {
+                    mergedContr.addNewType(contr.getType()); // 处理两个无继承关系的new对象
+                    return true;
+                }
+            } else if (ContrUtil.needUpdateInMerge(mergedContr.getValue(), contr.getValue())) {
+                mergedContr = contr;
                 return true;
-            } else {
-                return false;
             }
         }
+        return false;
     }
 
     public void add(PointsTo pointsTo) {
-        for (Pointer p : pointsTo.keySet()) {
-            add(p, pointsTo.get(p));
-        }
-    }
-
-    private Contr get(Pointer p) {
-        return relatedMap.get(p);
-    }
-
-    private Set<Pointer> keySet() {
-        return relatedMap.keySet();
-    }
-
-    public boolean isEmpty() {
-        return relatedMap.isEmpty();
+        add(pointsTo.getMergedContr());
     }
 
     public Contr getMergedContr() {
-        if (relatedMap.isEmpty()) return null;
-        return relatedMap.entrySet().iterator().next().getValue();
+        return mergedContr;
     }
 
-    public void setValue(String value) {
-        Map.Entry<Pointer, Contr> entry = relatedMap.entrySet().iterator().next();
-        Pointer key = entry.getKey();
-        Contr newValue = entry.getValue();
-        newValue.setValue(value);
-        relatedMap.put(key, newValue);
+    public boolean isEmpty() {
+        return mergedContr == null;
+    }
+
+    public void setValue(String s) {
+        mergedContr.setValue(s);
     }
 }

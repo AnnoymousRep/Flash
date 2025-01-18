@@ -124,6 +124,11 @@ public final class CallGraphs {
         return callees;
     }
 
+    public static JMethod resolveCalleesOf(JClass cls, String methodsubsig) {
+        ClassHierarchy hierarchy = World.get().getClassHierarchy();
+        return hierarchy.dispatch(cls, methodsubsig);
+    }
+
     /**
      * Dumps call graph to dot file.
      */

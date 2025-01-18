@@ -66,29 +66,57 @@ public class ContrUtil {
     public static boolean needUpdateInMerge(String oldV, String newV) {
         if (oldV == null) {
             return !newV.equals(sNOT_POLLUTED);
-        } else if (isControllable(oldV) && isControllable(newV)) {
-            return hasCS(newV) && !hasCS(oldV);
+        } else if (newV.startsWith("new") && !oldV.contains("new")) {
+            return true;
         } else {
-            return string2Int(oldV) == iNOT_POLLUTED && string2Int(newV) != iNOT_POLLUTED;
+            boolean oldc = isControllable(oldV);
+            boolean newc = isControllable(newV);
+            if (!oldc && !newc) {
+                return hasCS(newV);
+            } else if (oldc && newc) {
+                return hasCS(newV) && !hasCS(oldV);
+            } else {
+                return !oldc && newc;
+            }
         }
     }
 
     public static boolean hasCS(String value) {
         if (value.contains("+")) {
-            String[] parts = value.split("\\+");
-            for (String part : parts) {
-                if (isConstString(part)) {
-                    return true;
+            int start = 0;
+            for (int i = 0; i < value.length(); i++) {
+                if (value.charAt(i) == '+') {
+                    String part = value.substring(start, i);
+                    if (isConstString(part)) {
+                        return true;
+                    }
+                    start = i + 1;  // 更新起始位置
                 }
             }
-            return false;
+            String lastPart = value.substring(start);
+            return isConstString(lastPart);
         } else {
             return isConstString(value);
         }
     }
 
-    public static boolean needUpdateInConcat(String left, String right) {
-        return isControllable(left) != isControllable(right);
+    public static String getCS(String value) {
+        if (value.contains("+")) {
+            String ret = "";
+            String[] parts = value.split("\\+");
+            for (String part : parts) {
+                if (isConstString(part)) {
+                    ret = ret + part;
+                }
+            }
+            return ret;
+        } else {
+            return value;
+        }
+    }
+
+    public static boolean needUpdateInAppend(String left, String right) {
+        return isControllable(left) != isControllable(right) || (hasCS(right) && !right.equals(left));
     }
 
     public static boolean isControllable(Contr contr) {
@@ -117,7 +145,7 @@ public class ContrUtil {
     }
 
     private static boolean isConstString(String value) {
-        return !isControllable(value) && !value.equals(sNOT_POLLUTED) && !value.contains(".");
+        return !isControllable(value) && !value.equals(sNOT_POLLUTED);
     }
 
     public static String convert2Reg(String v) {
@@ -171,7 +199,7 @@ public class ContrUtil {
             String left = replace;
             for (int i = 1; i < parts.length; i++) {
                 String right = parts[i];
-                if (needUpdateInConcat(left, right)) {
+                if (needUpdateInAppend(left, right)) {
                     replace += "+" + (isControllable(right) ? contr : right);
                     left = right;
                 }

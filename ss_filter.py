@@ -1,7 +1,7 @@
 file_path = "./result.txt"
 out = "result_ss.txt"
 sinkList = [
-    "<org.apache.commons.collections4.functors.InvokerTransformer: java.lang.Object transform(java.lang.Object)>" # or comment this line
+    "<org.apache.commons.collections.functors.InvokerTransformer: java.lang.Object transform(java.lang.Object)>" # or comment this line
 ]
 
 gcs = []

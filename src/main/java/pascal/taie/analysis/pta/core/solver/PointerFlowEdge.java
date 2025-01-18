@@ -127,4 +127,11 @@ public class PointerFlowEdge implements Edge<Pointer> {
     public Set<Transfer> getTransfers() {
         return transfers;
     }
+
+    public SpecialType getSpecialTransfer() {
+        for (Transfer transfer : getTransfers()) {
+            if (transfer instanceof SpecialType) return (SpecialType) transfer;
+        }
+        return null;
+    }
 }

@@ -22,7 +22,6 @@
 
 package pascal.taie.ir.exp;
 
-import pascal.taie.analysis.dataflow.fact.MapFact;
 import pascal.taie.ir.proginfo.FieldRef;
 import pascal.taie.ir.stmt.Invoke;
 import pascal.taie.ir.stmt.LoadArray;
@@ -270,19 +269,6 @@ public class Var implements LValue, RValue, Indexable {
         JField field = jClass.getDeclaredField(fieldName);
         if (field == null && jClass.getSuperClass() != null) field = getField(jClass.getSuperClass(), fieldName);
         return field;
-    }
-
-    public List<JField> getUsedFields() {
-        List<JField> usedFields = new ArrayList<>();
-        getStoreFields().forEach(storeField -> {
-            JField field = storeField.getFieldRef().resolve();
-            if (!usedFields.contains(field)) usedFields.add(field);
-        });
-        getLoadFields().forEach(loadField -> {
-            JField field = loadField.getFieldRef().resolve();
-            if (!usedFields.contains(field)) usedFields.add(field);
-        });
-        return usedFields;
     }
 
     /**

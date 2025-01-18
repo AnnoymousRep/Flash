@@ -2,14 +2,18 @@ package pascal.taie.analysis.dataflow.analysis.methodsummary;
 
 import pascal.taie.analysis.dataflow.analysis.methodsummary.Utils.ContrUtil;
 import pascal.taie.analysis.pta.core.cs.element.*;
+import pascal.taie.language.classes.JClass;
 import pascal.taie.language.classes.JField;
 import pascal.taie.language.classes.JMethod;
 import pascal.taie.language.classes.Modifier;
 import pascal.taie.language.type.ArrayType;
+import pascal.taie.language.type.ClassType;
 import pascal.taie.language.type.Type;
 import pascal.taie.util.Strings;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 import static pascal.taie.analysis.dataflow.analysis.methodsummary.Utils.PUtil.getPointerMethod;
 
@@ -27,7 +31,9 @@ public class Contr {
 
     private boolean isNew = false;
 
-    private boolean isCasted = false; // 反序列化中代理对象不能再cast
+    private Set<Type> newType = new HashSet<>();
+
+    private boolean isCasted = false;
 
     private String value = ContrUtil.sNOT_POLLUTED;
 
@@ -35,12 +41,15 @@ public class Contr {
 
     private ArrayList<Contr> arrayElements = new ArrayList<>();
 
+    private boolean isIntra;
+
     private Contr() {
     }
 
     private Contr(Pointer pointer) {
         this.pointer = pointer;
         this.type = pointer.getType();
+        this.isIntra = false;
         if (pointer instanceof CSVar var) {
             this.name = var.getVar().getName();
             setSerializable(var.getType());
@@ -66,7 +75,7 @@ public class Contr {
 
     private void setTransient(JField field) {
         if (Modifier.hasTransient(field.getModifiers())) {
-            this.isTransient = true;
+            setTransient();
         }
     }
 
@@ -79,7 +88,7 @@ public class Contr {
     }
 
     public void setSerializable(Type type) {
-        if (ContrUtil.isSerializableType(type)) this.isSerializable = true;
+        if (ContrUtil.isSerializableType(type)) setSerializable();
     }
 
     public void setSerializable() {
@@ -99,11 +108,20 @@ public class Contr {
     }
 
     public boolean isNew() {
-        return isNew;
+        return isNew || value.startsWith("new");
     }
 
     public void setNew() {
         this.isNew = true;
+        this.newType.add(this.type);
+    }
+
+    public void addNewType(Type type) {
+        this.newType.add(type);
+    }
+
+    public Set<Type> getNewType() {
+        return this.newType;
     }
 
     public boolean isCasted() {
@@ -123,28 +141,36 @@ public class Contr {
         this.value = value;
     }
 
-    public void updateValue(String value) {
-        if (!Strings.isLegalContrValue(value)) {
-            return;
-        } else if (this.value.equals(ContrUtil.sNOT_POLLUTED)
-                || value.equals(ContrUtil.sNOT_POLLUTED)
-                || this.value.contains("new")) {
-            setValue(value);
-        } else {
-            String last;
-            if (this.value.contains("+")) {
-                last = this.value.substring(this.value.lastIndexOf("+") + 1);
-            } else {
-                last = this.value;
-                if (!ContrUtil.hasCS(last) && (ContrUtil.isControllable(value) || ContrUtil.hasCS(value))) {
+    public void updateValue(Contr contr, String actionType) {
+        if (contr != null) {
+            updateValue(contr.getValue(), actionType);
+        }
+    }
+
+    public void updateValue(String value, String actionType) {
+        if (!Strings.isLegalContrValue(value)) return;
+        switch (actionType) {
+            case "assign" -> {
+                if (ContrUtil.needUpdateInMerge(this.value, value)) setValue(value);
+            }
+            case "append" -> {
+                if ((this.value.equals(ContrUtil.sNOT_POLLUTED) || this.value.contains("new"))
+                        && !value.equals(ContrUtil.sNOT_POLLUTED)) {
                     setValue(value);
-                    return;
+                } else {
+                    String last;
+                    if (this.value.contains("+")) {
+                        last = this.value.substring(this.value.lastIndexOf("+") + 1);
+                    } else {
+                        last = this.value;
+                    }
+                    if (ContrUtil.needUpdateInAppend(last, value)) {
+                        this.value = this.value + "+" + value;
+                    }
                 }
             }
-            if (ContrUtil.needUpdateInConcat(last, value)) {
-                this.value = this.value + "+" + value;
-            }
         }
+
     }
 
     public void setConstString(String constString) {
@@ -186,14 +212,12 @@ public class Contr {
 
     public Contr copy() {
         Contr copy = newInstance(pointer);
-        copy.setType(this.type);
         copy.setValue(this.value);
         copy.setConstString(this.constString);
         if (isCasted) copy.setCasted();
         if (isNew) copy.setNew();
-        if (isTransient) copy.setTransient();
+        if (isNew) copy.setIntra();
         if (!arrayElements.isEmpty()) copy.addArrElement(arrayElements);
-        if (isSerializable) copy.setSerializable();
         return copy;
     }
 
@@ -206,8 +230,22 @@ public class Contr {
         }
         Contr other = (Contr) obj;
         return pointer.equals(other.pointer) &&
-                type.equals(other.type) &&
                 value.equals(other.value);
     }
 
+    public JClass getJClass() {
+        if (type instanceof ClassType ct) {
+            return ct.getJClass();
+        } else {
+            return null;
+        }
+    }
+
+    public void setIntra() {
+        this.isIntra = true;
+    }
+
+    public boolean isIntra() {
+        return isNew() || isIntra;
+    }
 }

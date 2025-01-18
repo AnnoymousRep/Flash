@@ -291,12 +291,12 @@ public class Options implements Serializable {
     }
 
     @JsonProperty
-    @Option(names = {"-pmc", "--PATH_MAX_COUNT"},
-            description = "the max count of collected paths")
-    private int PATH_MAX_COUNT;
+    @Option(names = {"-mps", "--GC_MAX_PER_SINK"},
+            description = "the max count of gadget chains per sink")
+    private int MAX_PER_SINK;
 
-    public int getPATH_MAX_COUNT() {
-        return PATH_MAX_COUNT;
+    public int getMAX_PER_SINK() {
+        return MAX_PER_SINK;
     }
 
     @JsonProperty
@@ -569,7 +569,7 @@ public class Options implements Serializable {
                 ", GC_OUT=" + GC_OUT +
                 ", filterNonSerializable=" + filterNonSerializable +
                 ", GC_MAX_LEN=" + GC_MAX_LEN +
-                ", PATH_MAX_COUNT=" + PATH_MAX_COUNT +
+                ", GC_MAX_PER_SINK=" + MAX_PER_SINK +
                 ", PATH_COLLECT_TIME=" + PATH_COLLECT_TIME +
                 ", analyses=" + analyses +
                 ", onlyGenPlan=" + onlyGenPlan +

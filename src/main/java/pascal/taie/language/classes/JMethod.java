@@ -23,6 +23,7 @@
 package pascal.taie.language.classes;
 
 import pascal.taie.World;
+import pascal.taie.analysis.dataflow.analysis.methodsummary.Utils.ContrUtil;
 import pascal.taie.analysis.dataflow.analysis.methodsummary.plugin.TaintTransfer;
 import pascal.taie.analysis.pta.core.cs.element.CSVar;
 import pascal.taie.frontend.cache.CachedIRBuilder;
@@ -94,8 +95,6 @@ public class JMethod extends ClassMember {
     private boolean isInvoke;
 
     private Map<CSVar, String> invokeDispatch;
-
-    private List<String> initEdge;
 
     public JMethod(JClass declaringClass, String name, Set<Modifier> modifiers,
                    List<Type> paramTypes, Type returnType, List<ClassType> exceptions,
@@ -282,7 +281,11 @@ public class JMethod extends ClassMember {
     }
 
     public void setSummary(String key, String value) {
-        if (key != null && value != null && !key.equals(value)) summary.put(key, value);
+        if (key != null && value != null
+                && !key.equals(value) && !key.contains("+") && !value.equals(ContrUtil.sNOT_POLLUTED)
+                && (key.startsWith(ContrUtil.sParam) || key.startsWith(ContrUtil.sTHIS) || key.equals("return"))) {
+            summary.put(key, value);
+        }
     }
 
     public String getSummary(String key) {
@@ -313,11 +316,4 @@ public class JMethod extends ClassMember {
         return invokeDispatch.getOrDefault(var, null);
     }
 
-    public void setInitEdge(List<String> csContr) {
-        initEdge = csContr;
-    }
-
-    public List<String> getInitEdge() {
-        return initEdge;
-    }
 }

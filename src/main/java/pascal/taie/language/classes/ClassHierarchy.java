@@ -153,6 +153,8 @@ public interface ClassHierarchy extends Indexer<JClass> {
     @Nullable
     JMethod dispatch(JClass receiverClass, MethodRef methodRef);
 
+    JMethod dispatch(JClass receiverClass, String subsig);
+
     /**
      * @return the direct subinterfaces of given interface.
      */

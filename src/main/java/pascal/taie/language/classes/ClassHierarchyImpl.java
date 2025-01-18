@@ -330,7 +330,20 @@ public class ClassHierarchyImpl implements ClassHierarchy {
         if (!isSubclass(methodRef.getDeclaringClass(), receiverClass)) {
             return null;
         }
-        Subsignature subsignature = methodRef.getSubsignature();
+
+        return dispatch(receiverClass, methodRef.getSubsignature());
+    }
+
+    public JMethod dispatch(JClass receiverClass, String subsig) {
+        if (receiverClass == null) {
+            return null;
+        } else {
+            Subsignature subsignature = Subsignature.get(subsig);
+            return dispatch(receiverClass, subsignature);
+        }
+    }
+
+    public JMethod dispatch(JClass receiverClass, Subsignature subsignature) {
         JMethod target = dispatchTable.get(receiverClass, subsignature);
         if (target == null) {
             target = lookupMethod(receiverClass, subsignature, false);
@@ -394,7 +407,9 @@ public class ClassHierarchyImpl implements ClassHierarchy {
 
     @Override
     public boolean isSubclass(JClass superclass, JClass subclass) {
-        if (superclass.equals(subclass)) {
+        if (superclass == null) {
+            return false;
+        } else if (superclass.equals(subclass)) {
             return true;
         } else if (superclass == getObjectClass()) {
             return true;

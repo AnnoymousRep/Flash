@@ -19,6 +19,9 @@ public interface Plugin {
     }
 
 
-    default void onNewMethod(JMethod method) {
+    default void onNewInit(JMethod method) {
+    }
+
+    default void onNewDeser(JMethod method) {
     }
 }

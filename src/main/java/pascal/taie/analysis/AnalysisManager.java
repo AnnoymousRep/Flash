@@ -33,6 +33,7 @@ import pascal.taie.ir.IR;
 import pascal.taie.language.classes.JClass;
 import pascal.taie.language.classes.JMethod;
 import pascal.taie.util.AnalysisException;
+import pascal.taie.util.Timer;
 import pascal.taie.util.graph.SimpleGraph;
 
 import java.lang.reflect.Constructor;
@@ -82,10 +83,6 @@ public class AnalysisManager {
         methodAnalyses = new ArrayList<>();
     }
 
-    public static void addWL(JMethod method) {
-        if (!workList.contains(method)) workList.add(method);
-    }
-
     /**
      * Executes the analysis plan.
      */
@@ -105,15 +102,19 @@ public class AnalysisManager {
         World.get().filterHandler();
         workList.addAll(World.get().getGCEntries());
 
-        while (!workList.isEmpty()) {
-            JMethod method = workList.poll();
-            if (!method.hasSummary()) {
-                runMethodAnalysis(method);
+        Timer.runAndCount(() -> {
+            while (!workList.isEmpty()) {
+                JMethod method = workList.poll();
+                if (!method.hasSummary()) {
+                    runMethodAnalysis(method);
+                }
             }
-        }
+        }, "deserialization call graph");
 
-        SummaryAnalysisDriver analysis = (SummaryAnalysisDriver) getAnalysis(methodAnalyses, SummaryAnalysisDriver.ID);
-        analysis.finish();
+        Timer.runAndCount(() -> {
+            SummaryAnalysisDriver analysis = (SummaryAnalysisDriver) getAnalysis(methodAnalyses, SummaryAnalysisDriver.ID);
+            analysis.finish();
+        }, "collect gc");
     }
 
     public static void runMethodAnalysis(JMethod m) {

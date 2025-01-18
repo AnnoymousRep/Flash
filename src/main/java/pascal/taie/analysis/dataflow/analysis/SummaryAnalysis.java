@@ -5,6 +5,7 @@ import pascal.taie.analysis.dataflow.analysis.methodsummary.ContrFact;
 import pascal.taie.analysis.dataflow.analysis.methodsummary.StackManger;
 import pascal.taie.analysis.dataflow.analysis.methodsummary.StmtProcessor;
 import pascal.taie.analysis.dataflow.analysis.methodsummary.Utils.ContrUtil;
+import pascal.taie.analysis.dataflow.analysis.methodsummary.plugin.CompositePlugin;
 import pascal.taie.analysis.graph.cfg.CFG;
 import pascal.taie.analysis.graph.flowgraph.FlowKind;
 import pascal.taie.analysis.pta.core.cs.CSCallGraph;
@@ -12,16 +13,12 @@ import pascal.taie.analysis.pta.core.cs.context.Context;
 import pascal.taie.analysis.pta.core.cs.element.CSManager;
 import pascal.taie.analysis.pta.core.cs.element.CSObj;
 import pascal.taie.analysis.pta.core.cs.element.CSVar;
-import pascal.taie.analysis.pta.core.cs.element.Pointer;
 import pascal.taie.analysis.pta.core.heap.HeapModel;
 import pascal.taie.analysis.pta.core.solver.PointerFlowGraph;
 import pascal.taie.ir.exp.Var;
-import pascal.taie.ir.stmt.New;
 import pascal.taie.ir.stmt.Stmt;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class SummaryAnalysis extends AbstractDataflowAnalysis<Stmt, ContrFact> {
 
@@ -33,15 +30,12 @@ public class SummaryAnalysis extends AbstractDataflowAnalysis<Stmt, ContrFact> {
 
     private HeapModel heapModel;
 
-    private CSCallGraph csCallGraph;
-
-    public SummaryAnalysis(CFG<Stmt> body, StackManger stackManger, CSManager csManager, HeapModel heapModel, Context context, PointerFlowGraph pointerFlowGraph, CSCallGraph csCallGraph) {
+    public SummaryAnalysis(CFG<Stmt> body, StackManger stackManger, CSManager csManager, HeapModel heapModel, Context context, PointerFlowGraph pointerFlowGraph, CSCallGraph csCallGraph, CompositePlugin plugin) {
         super(body);
         this.csManager = csManager;
         this.heapModel = heapModel;
         this.context = context;
-        this.csCallGraph = csCallGraph;
-        this.stmtProcessor = new StmtProcessor(stackManger, csCallGraph, pointerFlowGraph, heapModel, csManager, context);
+        this.stmtProcessor = new StmtProcessor(stackManger, csCallGraph, pointerFlowGraph, heapModel, csManager, context, plugin);
     }
 
     @Override
@@ -98,7 +92,7 @@ public class SummaryAnalysis extends AbstractDataflowAnalysis<Stmt, ContrFact> {
         return out.copyFrom(stmtProcessor.getFact());
     }
 
-    public void complementSummary() { // 返回值已经处理,这里补充对参数的影响
+    public void complementSummary() { // 返回值已经处理,补充对参数的影响
         stmtProcessor.complementSummary(cfg.getIR().getParams(), cfg.getIR().getThis());
     }
 

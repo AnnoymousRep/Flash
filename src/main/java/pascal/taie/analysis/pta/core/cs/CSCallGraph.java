@@ -179,6 +179,11 @@ public class CSCallGraph extends AbstractCallGraph<CSCallSite, CSMethod> {
 
     public CSMethod getCSMethod(String methodSig) {
         JMethod method = World.get().getClassHierarchy().getMethod(methodSig);
+        return getCSMethod(method);
+    }
+
+    public CSMethod getCSMethod(JMethod method) {
         return csManager.getCSMethod(emptyContext, method);
     }
+
 }

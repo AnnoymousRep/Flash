@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import pascal.taie.World;
 import pascal.taie.analysis.dataflow.analysis.methodsummary.Utils.ContrUtil;
 import pascal.taie.config.ConfigException;
 import pascal.taie.language.classes.ClassHierarchy;
@@ -120,6 +121,7 @@ public record PrioriKnowConfig(List<JMethod> sinks,
                         }
                         method.setSink(TC);
                         sinks.add(method);
+                        World.get().addSink(method);
                     } else {
                         logger.warn("Cannot find sink method '{}'", methodSig);
                     }
@@ -192,15 +194,11 @@ public record PrioriKnowConfig(List<JMethod> sinks,
                                 ArrayNode summaryValue = (ArrayNode) elem.get("value");
                                 summaryValue.forEach(value -> {
                                     String[] v = value.asText().split("->");
-                                    String from = ContrUtil.int2String(InvokeUtils.toInt(v[0]));
-                                    String to;
-                                    if (v[1].contains("result")) {
-                                        to = "return";
-                                        if (v[1].contains("\\+")) from = from + "+" + v[1].split("\\+")[1];
-                                        else from = from + "+null";
-                                    } else {
-                                        to = ContrUtil.int2String(InvokeUtils.toInt(v[1]));
-                                    }
+                                    String old = v[0].contains(":") ? v[0].substring(v[0].indexOf(":") + 1, v[0].length()) : v[0];
+                                    String from = v[0].replace(old, ContrUtil.int2String(InvokeUtils.toInt(old)));
+                                    boolean isRet = v[1].contains("result");
+                                    String to = isRet ? "return" : ContrUtil.int2String(InvokeUtils.toInt(v[1]));
+                                    from = from + (isRet ? "+" + (v[1].contains("\\+") ? v[1].split("\\+")[1] : "null") : "");
                                     method.setSummary(to, from);
                                 });
                             }
@@ -226,6 +224,8 @@ public record PrioriKnowConfig(List<JMethod> sinks,
                         if (method != null) {
                             method.setIgnored();
                             ignores.add(method);
+                        } else {
+                            logger.warn("Cannot find ignored method '{}'", methodSig);
                         }
                     } else if (elem.get("class") != null) {
                         String classSig = elem.get("class").asText();

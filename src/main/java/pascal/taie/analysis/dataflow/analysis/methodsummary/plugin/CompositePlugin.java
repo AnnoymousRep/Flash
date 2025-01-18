@@ -26,7 +26,12 @@ public class CompositePlugin implements Plugin {
     }
 
     @Override
-    public void onNewMethod(JMethod method) {
-        allPlugins.forEach(p -> p.onNewMethod(method));
+    public void onNewInit(JMethod method) {
+        allPlugins.forEach(p -> p.onNewInit(method));
+    }
+
+    @Override
+    public void onNewDeser(JMethod method) {
+        allPlugins.forEach(p -> p.onNewDeser(method));
     }
 }
